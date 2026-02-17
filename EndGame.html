@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParkMate Live Status</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- CSS STYLES --- */
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            background-color: #f4f7f6; 
+            margin: 0; padding: 0; 
+            display: flex; flex-direction: column; 
+            min-height: 100vh; 
+            text-align: center; 
+        }
+
+        .main-header { 
+            background-color: #2c3e50; 
+            color: white; 
+            padding: 25px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+
+        /* --- LEGEND --- */
+        .legend-container {
+            margin: 30px auto 10px auto;
+            padding: 15px 30px;
+            background: white;
+            display: inline-flex; gap: 30px;
+            border-radius: 50px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .legend-item { display: flex; align-items: center; font-weight: bold; color: #555; }
+        .dot { height: 12px; width: 12px; border-radius: 50%; margin-right: 8px; }
+        .dot-green { background-color: #28a745; }
+        .dot-red { background-color: #dc3545; }
+        .dot-yellow { background-color: #ffc107; border: 1px solid #999; }
+
+        .dashboard-container { 
+            display: flex; 
+            justify-content: center; 
+            gap: 40px; 
+            padding: 40px; 
+            flex-grow: 1; 
+            flex-wrap: wrap; 
+        }
+
+        .slot-card { 
+            width: 300px; height: 180px; 
+            background-color: white; 
+            border-radius: 12px; 
+            display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            transition: all 0.3s ease; 
+        }
+        .slot-name { font-size: 2rem; font-weight: bold; margin-bottom: 10px; }
+        .slot-status { font-size: 1.3rem; font-weight: bold; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+        /* --- STATUS COLORS --- */
+        .available { 
+            background-color: #28a745; 
+            color: white; 
+            cursor: pointer; 
+        } 
+        .available:hover { transform: scale(1.05); }
+        
+        .occupied { 
+            background-color: #dc3545; 
+            color: white; 
+            cursor: not-allowed; 
+        } 
+
+        .misaligned { 
+            background-color: #ffc107; /* Yellow */
+            color: #212529; /* Dark text */
+            cursor: not-allowed; 
+            border: 4px dashed #333; 
+        }
+        
+        .loading { 
+            background-color: #cccccc; 
+            color: #666; 
+        }
+
+        /* --- MODAL --- */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(3px); }
+        .modal-content { background-color: white; margin: 10% auto; padding: 30px; border-radius: 15px; width: 350px; text-align: left; position: relative; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #aaa; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .btn-book { width: 100%; padding: 12px; background-color: #2c3e50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1.1rem; }
+        .btn-book:hover { background-color: #1a252f; }
+
+        /* --- FOOTER (Restored from Original) --- */
+        .footer { 
+            background-color: #333; 
+            color: white; 
+            padding: 30px; 
+            display: flex; justify-content: center; gap: 50px; text-align: left; flex-wrap: wrap; 
+        }
+        .footer-col h3 { border-bottom: 2px solid #555; padding-bottom: 10px; margin-bottom: 10px; }
+        .footer-col p { font-size: 0.9rem; color: #ccc; line-height: 1.6; margin-bottom: 15px; }
+        .footer-col { max-width: 300px; }
+        
+        /* Warning Icon SVG styling */
+        .warning-icon { width: 24px; height: 24px; fill: #000; display: inline-block; vertical-align: bottom;}
+    </style>
+</head>
+<body>
+
+    <header class="main-header">
+        <h1>ParkMate Live Dashboard</h1>
+    </header>
+
+    <div class="legend-container">
+        <div class="legend-item"><span class="dot dot-green"></span> Available (Click to Book)</div>
+        <div class="legend-item"><span class="dot dot-red"></span> Occupied</div>
+        <div class="legend-item"><span class="dot dot-yellow"></span> Misaligned</div>
+    </div>
+
+    <main class="dashboard-container">
+        <div class="slot-card loading" id="slot-1">
+            <div class="slot-name">Slot 1</div>
+            <div class="slot-status" id="text-1">Connecting...</div>
+        </div>
+
+        <div class="slot-card loading" id="slot-2">
+            <div class="slot-name">Slot 2</div>
+            <div class="slot-status" id="text-2">Connecting...</div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-col">
+            <h3>About This Project</h3>
+            <p>This is a real-time IoT parking system using IR sensors to display live slot availability.</p>
+        </div>
+        <div class="footer-col">
+            <h3>Project By:</h3>
+            <p><strong>Noelraj S</strong><br>(Web Developer & Project Designer)</p>
+            <p><strong>Noel Jojo</strong><br>(Hardware & Programming Engineer)</p>
+            <p><strong>Nitik Bist</strong><br>(Integration engineer & Hardware support)</p>
+        </div>
+        <div class="footer-col">
+            <h3>Technology Used</h3>
+            <p>Arduino (ESP32), IR Sensors, HTML/CSS, JavaScript</p>
+        </div>
+    </footer>
+
+    <div id="bookingModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Book Slot</h2>
+            <div class="form-group"><label>Name:</label><input type="text" id="userName"></div>
+            <div class="form-group"><label>Time (6 AM - 11 PM):</label><input type="time" id="bookingTime"></div>
+            <button class="btn-book" onclick="confirmBooking()">Confirm Booking</button>
+        </div>
+    </div>
+
+    <script>
+        // -----------------------------------------------------------
+        // 🔴 UPDATE THIS IP ADDRESS EVERY TIME YOU RESTART ARDUINO
+        // -----------------------------------------------------------
+        const esp32_ip = "http://172.20.10.5"; 
+
+        // SVG Icon for the warning symbol
+        const warningSVG = `<svg class="warning-icon" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`;
+
+        let activeSlot = ""; 
+
+        function updateCard(cardId, textId, status) {
+            const card = document.getElementById(cardId);
+            const text = document.getElementById(textId);
+
+            // 1. Reset Classes
+            card.classList.remove("available", "occupied", "misaligned", "loading");
+            card.onclick = null; 
+
+            // 2. Check Status
+            if (status === "FREE") {
+                card.classList.add("available");
+                text.innerText = "AVAILABLE";
+                card.onclick = function() { openModal(cardId); }; 
+            } 
+            else if (status === "OCCUPIED") {
+                card.classList.add("occupied");
+                text.innerText = "OCCUPIED";
+            } 
+            else if (status === "MISALIGNED") {
+                card.classList.add("misaligned");
+                // Insert SVG Icon + Text
+                text.innerHTML = warningSVG + " MISALIGNED"; 
+            }
+            else {
+                card.classList.add("loading");
+                text.innerText = "OFFLINE";
+            }
+        }
+
+        // 3. Loop to fetch data from Arduino
+        setInterval(() => {
+            fetch(esp32_ip + "/data")
+            .then(response => response.json())
+            .then(data => {
+                updateCard("slot-1", "text-1", data.s1); 
+                updateCard("slot-2", "text-2", data.s2); 
+            })
+            .catch(error => { 
+                console.log("Waiting for connection..."); 
+            });
+        }, 500);
+
+        // --- MODAL FUNCTIONS ---
+        function openModal(slotId) {
+            activeSlot = slotId.replace("-", " ").toUpperCase();
+            document.getElementById("modalTitle").innerText = "Book " + activeSlot;
+            document.getElementById("bookingModal").style.display = "block"; 
+        }
+
+        function closeModal() { 
+            document.getElementById("bookingModal").style.display = "none"; 
+        }
+        
+        function confirmBooking() {
+            const name = document.getElementById("userName").value;
+            const time = document.getElementById("bookingTime").value;
+            
+            if (!name || !time) { alert("Please fill all fields."); return; }
+
+            const hour = parseInt(time.split(":")[0]);
+            if (hour < 6 || hour >= 23) {
+                alert("⚠️ Parking closed! Open 6:00 AM - 11:00 PM.");
+            } else {
+                alert("✅ SUCCESS! Booking confirmed for " + name + " at " + time);
+                closeModal();
+                updateCard(activeSlot.toLowerCase().replace(" ", "-"), "text-" + activeSlot.split(" ")[1], "OCCUPIED");
+            }
+        }
+    </script>
+</body>
+</html>
